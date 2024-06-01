@@ -1,0 +1,6 @@
+title = "ryan's dots"
+src_dir = "tests/dots"
+dst_dir = "tests/config"
+
+[config]
+sway = "sway"

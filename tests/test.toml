@@ -1,0 +1,13 @@
+title = "ryan's dots"
+src_dir = "tests"
+dst_dir = "~/.config"
+
+[fedora]
+sway = "sway-global"
+waybar = "waybar-fedora"
+zsh = "zsh"
+
+[debian]
+sway = "sway-global"
+waybar = "waybar-debian"
+zsh = "zsh-debian"
