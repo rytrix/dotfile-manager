@@ -1,6 +1,7 @@
 title = "ryan's dots"
-src_dir = "tests/dots"
-dst_dir = "tests/config"
+src_dir = "tests"
+dst_dir = "tests"
 
 [config]
 sway = "sway"
+"~/Documents/dotfiles" = "~/.config"

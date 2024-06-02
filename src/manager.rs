@@ -76,10 +76,31 @@ impl Manager {
                 println!("Config {}:", configuration);
 
                 for (dst_org, src_org) in table {
-                    let dst: String = self.full_path_dst(dst_org);
+                    let dst: String = match self.full_path(dst_org, false) {
+                        Ok(dst) => dst,
+                        Err(error) => {
+                            println!(
+                                "Failed to get full path of {}, error: {}",
+                                dst_org,
+                                error.to_string()
+                            );
+                            continue;
+                        }
+                    };
+
                     let src: String;
                     if let Some(src_org) = src_org.as_str() {
-                        src = self.full_path_src(src_org);
+                        src = match self.full_path(src_org, true) {
+                            Ok(src) => src,
+                            Err(error) => {
+                                println!(
+                                    "Failed to get full path of {}, error: {}",
+                                    src_org,
+                                    error.to_string()
+                                );
+                                continue;
+                            }
+                        };
                     } else {
                         println!("Error: not a string");
                         continue;
@@ -96,11 +117,31 @@ impl Manager {
 
         if let Some(table) = value.as_table() {
             for (dst_org, src_org) in table {
-                let dst: String = self.full_path_dst(dst_org);
+                let dst: String = match self.full_path(dst_org, false) {
+                    Ok(dst) => dst,
+                    Err(error) => {
+                        println!(
+                            "Failed to get full path of {}, error: {}",
+                            dst_org,
+                            error.to_string()
+                        );
+                        continue;
+                    }
+                };
 
                 let src: String;
                 if let Some(src_org) = src_org.as_str() {
-                    src = self.full_path_src(src_org);
+                    src = match self.full_path(src_org, true) {
+                        Ok(src) => src,
+                        Err(error) => {
+                            println!(
+                                "Failed to get full path of {}, error: {}",
+                                src_org,
+                                error.to_string()
+                            );
+                            continue;
+                        }
+                    };
                 } else {
                     println!("Error: not a string");
                     return;
@@ -121,16 +162,46 @@ impl Manager {
         }
     }
 
-    fn full_path_src(&self, dir: &str) -> String {
-        let mut src = self.src_dir.clone();
-        src.push(dir);
-        src.display().to_string()
-    }
+    fn full_path(&self, dir: &str, is_src: bool) -> std::io::Result<String> {
+        let path = match PathBuf::from_str(dir) {
+            Ok(path) => path,
+            Err(error) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    error.to_string(),
+                ));
+            }
+        };
 
-    fn full_path_dst(&self, dir: &str) -> String {
-        let mut dst = self.dst_dir.clone();
-        dst.push(dir);
-        dst.display().to_string()
+        let path = match path.strip_prefix("~") {
+            Ok(path) => {
+                let path = match std::env::var("HOME") {
+                    Ok(home) => home,
+                    Err(_error) => {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::NotFound,
+                            "HOME environment variable does not exist",
+                        ));
+                    }
+                } + "/"
+                    + path.display().to_string().as_str();
+
+                path
+            }
+            Err(_error) => {
+                if is_src {
+                    let mut src = self.src_dir.clone();
+                    src.push(dir);
+                    src.display().to_string()
+                } else {
+                    let mut dst = self.dst_dir.clone();
+                    dst.push(dir);
+                    dst.display().to_string()
+                }
+            }
+        };
+
+        Ok(path)
     }
 }
 
@@ -175,7 +246,19 @@ fn canonicalize(path: std::path::PathBuf) -> std::io::Result<PathBuf> {
         Err(_error) => path,
     };
 
-    Ok(path.canonicalize()?)
+    Ok(match path.canonicalize() {
+        Ok(path) => path,
+        Err(error) => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!(
+                    "Failed to canonicalize path {} with error {}",
+                    path.display().to_string(),
+                    error.to_string()
+                ),
+            ));
+        }
+    })
 }
 
 #[cfg(test)]
