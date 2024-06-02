@@ -24,7 +24,7 @@ struct Args {
     #[arg(long, value_name = "boolean", action = ArgAction::SetTrue)]
     list_full: bool,
 
-    /// Dryrun
+    /// Dry run
     #[arg(short = 'r', long, value_name = "boolean", action = ArgAction::SetTrue)]
     dry_run: bool,
 }
