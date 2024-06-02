@@ -1,5 +1,5 @@
 title = "ryan's dots"
-src_dir = "tests"
+src_dir = "~/Documents/dotfiles"
 dst_dir = "~/.config"
 
 [fedora]
