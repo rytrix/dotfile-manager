@@ -220,4 +220,18 @@ mod tests {
         actual.push_str("/tests/~");
         assert_eq!(path.display().to_string(), actual);
     }
+
+    #[test]
+    fn test_canonicalize_3() {
+        let _ = std::fs::create_dir("~tests/");
+
+        let path = std::path::PathBuf::from_str("~tests/").unwrap();
+        let path = canonicalize(path).unwrap();
+
+        let mut actual = std::env::var("PWD").unwrap();
+        actual.push_str("/~tests");
+        assert_eq!(path.display().to_string(), actual);
+
+        std::fs::remove_dir("~tests/").unwrap();
+    }
 }
