@@ -8,9 +8,9 @@ use clap::{ArgAction, Parser};
 #[command(arg_required_else_help = true)]
 #[command(version)]
 struct Args {
-    /// Config file to load
-    #[arg(short, long, value_name = "file", required = true)]
-    file: String,
+    /// Config file to load, default dots.toml
+    #[arg(short, long, value_name = "file")]
+    file: Option<String>,
 
     /// Deploy a config
     #[arg(short, long, value_name = "config")]
@@ -29,11 +29,16 @@ struct Args {
     dry_run: bool,
 }
 
-
 fn main() -> std::io::Result<()> {
     let args = Args::parse();
 
-    let text = std::fs::read_to_string(args.file)?;
+    let file = if let Some(file) = args.file {
+        file
+    } else {
+        String::from("dots.toml")
+    };
+
+    let text = std::fs::read_to_string(file)?;
     let manager = Manager::new(text.as_str(), args.dry_run)?;
 
     if let Some(config) = args.deploy {
