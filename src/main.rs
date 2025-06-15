@@ -16,6 +16,10 @@ struct Args {
     #[arg(short, long, value_name = "config")]
     deploy: Option<String>,
 
+    /// Clean a config
+    #[arg(short, long, value_name = "config")]
+    clean: Option<String>,
+
     /// Display all entries
     #[arg(short, long, value_name = "boolean", action = ArgAction::SetTrue)]
     list: bool,
@@ -43,6 +47,9 @@ fn main() -> std::io::Result<()> {
 
     if let Some(config) = args.deploy {
         manager.deploy_config(&config);
+    }
+    if let Some(config) = args.clean {
+        manager.clean_config(&config);
     }
     if args.list {
         manager.list_entries();

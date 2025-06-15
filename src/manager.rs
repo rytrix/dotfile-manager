@@ -162,6 +162,38 @@ impl Manager {
         }
     }
 
+    pub fn clean_config(&self, config: &str) {
+        let value = &self.table[config];
+
+        if let Some(table) = value.as_table() {
+            for (dst_org, _) in table {
+                let dst: String = match self.full_path(dst_org, false) {
+                    Ok(dst) => dst,
+                    Err(error) => {
+                        println!(
+                            "Failed to get full path of {}, error: {}",
+                            dst_org,
+                            error.to_string()
+                        );
+                        continue;
+                    }
+                };
+
+                if self.dry_run {
+                    println!("removing link: {}", dst);
+                } else {
+                    match remove_symlink(dst.as_str()) {
+                        Ok(()) => (),
+                        Err(error) => {
+                            println!("Error: {}", error.to_string());
+                            println!("failed to remove link {}", dst);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn full_path(&self, dir: &str, is_src: bool) -> std::io::Result<String> {
         let path = match PathBuf::from_str(dir) {
             Ok(path) => path,
@@ -203,7 +235,7 @@ impl Manager {
 
         Ok(path)
     }
-}
+} // impl Manager
 
 fn symlink_or_replace(original: &str, link: &str) -> std::io::Result<()> {
     match symlink(original, link) {
@@ -224,6 +256,14 @@ fn symlink_or_replace(original: &str, link: &str) -> std::io::Result<()> {
         }
     };
 
+    Ok(())
+}
+
+fn remove_symlink(link: &str) -> std::io::Result<()> {
+    let meta = symlink_metadata(link)?;
+    if meta.is_symlink() {
+        std::fs::remove_file(link)?;
+    }
     Ok(())
 }
 
