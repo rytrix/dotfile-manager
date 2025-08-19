@@ -16,9 +16,13 @@ struct Args {
     #[arg(short, long, value_name = "config")]
     deploy: Option<String>,
 
-    /// Clean a config
-    #[arg(short, long, value_name = "config")]
-    clean: Option<String>,
+    // Cleans the previously deployed config
+    #[arg(short, long, value_name = "boolean", action = ArgAction::SetTrue)]
+    clean: bool,
+
+    /// Clean a specified config
+    #[arg(long, value_name = "config")]
+    clean_config: Option<String>,
 
     /// Display all entries
     #[arg(short, long, value_name = "boolean", action = ArgAction::SetTrue)]
@@ -33,6 +37,18 @@ struct Args {
     dry_run: bool,
 }
 
+fn clean_old_config(file_deployed: &String, dry_run: bool) -> std::io::Result<()> {
+    if std::fs::exists(std::path::Path::new(&file_deployed))? {
+        let text = std::fs::read_to_string(&file_deployed)?;
+        let manager = Manager::new(text.as_str(), dry_run)?;
+        let entries = manager.list_entries();
+        let config = entries[0].as_str();
+        manager.clean_config(config);
+    }
+
+    return Ok(());
+}
+
 fn main() -> std::io::Result<()> {
     let args = Args::parse();
 
@@ -42,20 +58,37 @@ fn main() -> std::io::Result<()> {
         String::from("dots.toml")
     };
 
-    let text = std::fs::read_to_string(file)?;
+    let file_deployed = format!("{}.deployed", &file);
+
+    let text = std::fs::read_to_string(&file)?;
     let manager = Manager::new(text.as_str(), args.dry_run)?;
 
     if let Some(config) = args.deploy {
+        clean_old_config(&file_deployed, args.dry_run)?;
         manager.deploy_config(&config);
+
+        let deployed = manager.serialize_config_to_string(config.as_str());
+        let deployed = format!("#Do not edit\n{}", deployed);
+        if !args.dry_run {
+            std::fs::write(&file_deployed, deployed)?;
+        } else {
+            println!("Writing to {file_deployed} with:\n{}", deployed);
+        }
     }
-    if let Some(config) = args.clean {
+    if let Some(config) = args.clean_config {
         manager.clean_config(&config);
     }
+    if args.clean {
+        clean_old_config(&file_deployed, args.dry_run)?;
+    }
     if args.list {
-        manager.list_entries();
+        let entries = manager.list_entries();
+        for entry in entries {
+            println!("{}", entry);
+        }
     }
     if args.list_full {
-        manager.list_full_config();
+        manager.print_full_config();
     }
 
     Ok(())

@@ -2,10 +2,8 @@ use std::{
     fs::symlink_metadata, io::ErrorKind, os::unix::fs::symlink, path::PathBuf, str::FromStr,
 };
 
-use toml::{from_str, Table};
-
 pub struct Manager {
-    table: Table,
+    table: toml::Table,
     src_dir: PathBuf,
     dst_dir: PathBuf,
     dry_run: bool,
@@ -13,7 +11,7 @@ pub struct Manager {
 
 impl Manager {
     pub fn new(text: &str, dry_run: bool) -> std::io::Result<Manager> {
-        let serialized: Table = match from_str(text) {
+        let serialized: toml::Table = match toml::from_str(text) {
             Ok(serialized) => serialized,
             Err(error) => {
                 return Err(std::io::Error::new(
@@ -59,16 +57,18 @@ impl Manager {
         })
     }
 
-    pub fn list_entries(&self) {
-        println!("{}", self.table["title"]);
+    pub fn list_entries(&self) -> Vec<String> {
+        let mut entries: Vec<String> = std::vec![];
         for (configuration, value) in self.table.iter() {
             if value.is_table() {
-                println!("{}", configuration);
+                entries.push(format!("{}", configuration.to_string()));
             }
         }
+
+        return entries;
     }
 
-    pub fn list_full_config(&self) {
+    pub fn print_full_config(&self) {
         println!("{}", self.table["title"]);
 
         for (configuration, value) in self.table.iter() {
@@ -112,7 +112,45 @@ impl Manager {
         }
     }
 
+    pub fn serialize_config_to_string(&self, config: &str) -> String {
+        let title = &self.table["title"];
+        let value = &self.table[config];
+        if let Some(table) = value.as_table() {
+            if let Ok(table) = toml::ser::to_string(table) {
+                let src_dir;
+                if let Some(some_src_dir) = self.src_dir.to_str() {
+                    src_dir = some_src_dir
+                } else {
+                    println!("src_dir not a real path");
+                    return String::new();
+                }
+
+                let dst_dir;
+                if let Some(some_dst_dir) = self.dst_dir.to_str() {
+                    dst_dir = some_dst_dir
+                } else {
+                    println!("dst_dir not a real path");
+                    return String::new();
+                }
+
+                return format!(
+                    "title = {}\nsrc_dir = \"{}\"\ndst_dir = \"{}\"\n[{}]\n{}",
+                    title, src_dir, dst_dir, config, table
+                );
+            } else {
+                println!("failed to serialize to string");
+            }
+        } else {
+            println!("failed to convert table to table");
+        }
+
+        return String::new();
+    }
+
     pub fn deploy_config(&self, config: &str) {
+        if self.dry_run {
+            println!("Deploying config: \"{config}\"");
+        }
         let value = &self.table[config];
 
         if let Some(table) = value.as_table() {
@@ -163,6 +201,9 @@ impl Manager {
     }
 
     pub fn clean_config(&self, config: &str) {
+        if self.dry_run {
+            println!("Cleaning config: \"{config}\"");
+        }
         let value = &self.table[config];
 
         if let Some(table) = value.as_table() {

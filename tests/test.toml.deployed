@@ -1,0 +1,8 @@
+#Do not edit
+title = "ryan's dots"
+src_dir = "/home/ryan/Documents/dotfiles"
+dst_dir = "/home/ryan/.config"
+[debian]
+sway = "sway-global"
+waybar = "waybar-debian"
+zsh = "zsh-debian"
