@@ -72,7 +72,7 @@ fn main() -> std::io::Result<()> {
         if !args.dry_run {
             std::fs::write(&file_deployed, deployed)?;
         } else {
-            println!("Writing to {file_deployed} with:\n{}", deployed);
+            print!("Writing to {file_deployed} with:\n{}", deployed);
         }
     }
     if let Some(config) = args.clean_config {
