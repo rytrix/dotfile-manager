@@ -1,0 +1,19 @@
+title = "user's dots"
+src_dir = "~/Documents/dotfiles"
+dst_dir = "~/.config"
+
+[debian]
+# dst_dir/nvim -> src_dir/nvim
+nvim = "nvim"
+sway = "sway-debian"
+# full-path -> src_dir/pure-starship.toml
+"~/.local/share/fonts" = "fonts"
+"~/.local/bin/lockscreen" = "lockscreen.sh"
+
+[arch]
+# dst_dir/nvim -> src_dir/nvim
+nvim = "nvim"
+sway = "sway-arch"
+# full-path -> src_dir/fonts
+"~/.local/share/fonts" = "fonts"
+"~/.local/bin/lockscreen" = "lockscreen.sh"
