@@ -69,8 +69,6 @@ impl Manager {
     }
 
     pub fn print_full_config(&self) {
-        println!("{}", self.table["title"]);
-
         for (configuration, value) in self.table.iter() {
             if let Some(table) = value.as_table() {
                 println!("Config {}:", configuration);
@@ -106,14 +104,13 @@ impl Manager {
                         continue;
                     }
 
-                    println!("  original: {} to link: {}", src, dst);
+                    println!("  symlink src: {} -> dst: {}", src, dst);
                 }
             }
         }
     }
 
     pub fn serialize_config_to_string(&self, config: &str) -> String {
-        let title = &self.table["title"];
         let value = &self.table[config];
         if let Some(table) = value.as_table() {
             if let Ok(table) = toml::ser::to_string(table) {
@@ -134,8 +131,8 @@ impl Manager {
                 }
 
                 return format!(
-                    "title = {}\nsrc_dir = \"{}\"\ndst_dir = \"{}\"\n[{}]\n{}",
-                    title, src_dir, dst_dir, config, table
+                    "src_dir = \"{}\"\ndst_dir = \"{}\"\n[{}]\n{}",
+                    src_dir, dst_dir, config, table
                 );
             } else {
                 println!("failed to serialize to string");
@@ -185,17 +182,13 @@ impl Manager {
                     return;
                 }
 
-                if self.dry_run {
-                    println!("original: {} to link: {}", src, dst);
-                } else {
-                    match symlink_or_replace(src.as_str(), dst.as_str()) {
-                        Ok(()) => (),
-                        Err(error) => {
-                            println!("Error: {}", error.to_string());
-                            println!("failed original: {}, to link {}", src, dst);
-                        }
-                    };
-                }
+                match symlink_or_replace(src.as_str(), dst.as_str(), self.dry_run) {
+                    Ok(()) => (),
+                    Err(error) => {
+                        println!("Error: {}", error.to_string());
+                        println!("failed original: {}, to link {}", src, dst);
+                    }
+                };
             }
         }
     }
@@ -274,26 +267,31 @@ impl Manager {
     }
 } // impl Manager
 
-fn symlink_or_replace(original: &str, link: &str) -> std::io::Result<()> {
-    match symlink(original, link) {
-        Ok(()) => (),
-        Err(error) => {
-            if error.kind() == ErrorKind::AlreadyExists {
-                let meta = symlink_metadata(link)?;
-                if meta.is_symlink() {
-                    std::fs::remove_file(link)?;
-                    symlink(original, link)?;
-                } else {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::AlreadyExists,
-                        "not a symlink",
-                    ));
+fn symlink_or_replace(src: &str, dst: &str, dry_run: bool) -> std::io::Result<()> {
+    if dry_run {
+        println!("symlink src: \"{src}\" -> dst: \"{dst}\"");
+        Ok(())
+    } else {
+        match symlink(src, dst) {
+            Ok(()) => (),
+            Err(error) => {
+                if error.kind() == ErrorKind::AlreadyExists {
+                    let meta = symlink_metadata(dst)?;
+                    if meta.is_symlink() {
+                        std::fs::remove_file(dst)?;
+                        symlink(src, dst)?;
+                    } else {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::AlreadyExists,
+                            "not a symlink",
+                        ));
+                    }
                 }
             }
-        }
-    };
+        };
 
-    Ok(())
+        Ok(())
+    }
 }
 
 fn remove_symlink(link: &str, dry_run: bool) -> std::io::Result<()> {
@@ -350,12 +348,12 @@ mod tests {
 
     #[test]
     fn test_symlink() {
-        symlink_or_replace("tests/symlink_ex", "tests/symlink_link").unwrap();
+        symlink_or_replace("tests/symlink_ex", "tests/symlink_link", false).unwrap();
     }
 
     #[test]
     fn test_symlink_not_a_symlink() {
-        match symlink_or_replace("tests/symlink_ex", "tests/symlink_ex2") {
+        match symlink_or_replace("tests/symlink_ex", "tests/symlink_ex2", false) {
             Ok(_) => {
                 panic!("expected not a symlink error");
             }
