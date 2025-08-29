@@ -220,15 +220,11 @@ impl Manager {
                     }
                 };
 
-                if self.dry_run {
-                    println!("removing link: {}", dst);
-                } else {
-                    match remove_symlink(dst.as_str()) {
-                        Ok(()) => (),
-                        Err(error) => {
-                            println!("Error: {}", error.to_string());
-                            println!("failed to remove link {}", dst);
-                        }
+                match remove_symlink(dst.as_str(), self.dry_run) {
+                    Ok(()) => (),
+                    Err(error) => {
+                        println!("Error: {}", error.to_string());
+                        println!("failed to remove link {}", dst);
                     }
                 }
             }
@@ -300,10 +296,14 @@ fn symlink_or_replace(original: &str, link: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn remove_symlink(link: &str) -> std::io::Result<()> {
-    let meta = symlink_metadata(link)?;
-    if meta.is_symlink() {
-        std::fs::remove_file(link)?;
+fn remove_symlink(link: &str, dry_run: bool) -> std::io::Result<()> {
+    if dry_run {
+        println!("removing symlink: \"{link}\"");
+    } else {
+        let meta = symlink_metadata(link)?;
+        if meta.is_symlink() {
+            std::fs::remove_file(link)?;
+        }
     }
     Ok(())
 }
