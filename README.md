@@ -42,3 +42,6 @@ sway = "sway-arch"
 "~/.local/share/fonts" = "fonts"
 "~/.local/bin/lockscreen" = "lockscreen.sh"
 ```
+
+### Todo
+Check that all selected symlinks are not real directories before deploying any symlinks
