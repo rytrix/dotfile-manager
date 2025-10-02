@@ -213,11 +213,13 @@ impl Manager {
                     }
                 };
 
-                match remove_symlink(dst.as_str(), self.dry_run) {
-                    Ok(()) => (),
-                    Err(error) => {
-                        println!("Error: {}", error.to_string());
-                        println!("failed to remove link {}", dst);
+                if std::path::Path::new(&dst).exists() {
+                    match remove_symlink(dst.as_str(), self.dry_run) {
+                        Ok(()) => (),
+                        Err(error) => {
+                            println!("Error: {}", error.to_string());
+                            println!("failed to remove link {}", dst);
+                        }
                     }
                 }
             }
