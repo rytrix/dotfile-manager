@@ -274,6 +274,22 @@ fn symlink_or_replace(src: &str, dst: &str, dry_run: bool) -> std::io::Result<()
         println!("symlink src: \"{src}\" -> dst: \"{dst}\"");
         Ok(())
     } else {
+        let mut ancestors = std::path::Path::new(dst).ancestors();
+        ancestors.next();
+        let parent_path = match ancestors.next() {
+            Some(parent) => parent,
+            None => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "parent does not exist",
+                ));
+            }
+        };
+
+        if parent_path.is_dir() == false && parent_path.is_file() == false {
+            std::fs::create_dir_all(parent_path)?;
+        }
+
         match symlink(src, dst) {
             Ok(()) => (),
             Err(error) => {
@@ -351,6 +367,16 @@ mod tests {
     #[test]
     fn test_symlink() {
         symlink_or_replace("tests/symlink_ex", "tests/symlink_link", false).unwrap();
+    }
+
+    #[test]
+    fn test_symlink_2() {
+        let result = symlink_or_replace("tests/symlink_ex", "tests/makedirectory/symlink_link", false);
+
+        std::fs::remove_file("tests/makedirectory/symlink_link").unwrap();
+        std::fs::remove_dir("tests/makedirectory").unwrap();
+
+        result.unwrap();
     }
 
     #[test]
